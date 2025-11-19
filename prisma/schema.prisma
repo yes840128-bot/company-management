@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 업체 정보 모델
+model Company {
+  id                String   @id @default(uuid())
+  companyName       String   // 업체명
+  businessNumber    String   // 사업자등록번호
+  representativeName String  // 대표자명
+  address           String?  // 주소 (선택사항)
+  businessType      String?  // 업태 (선택사항)
+  businessItem      String?  // 종목 (선택사항)
+  creditRating      String?  // 신용등급 (선택사항)
+  riskRating        String?  // 위험등급 (선택사항)
+  memo              String?  // 메모 (선택사항)
+  establishedAt     DateTime? // 설립일 (선택사항)
+  loanStatus        String?  // 기대출 현황 (선택사항)
+  businessLicensePath String? // 사업자등록증 파일 경로 (선택사항)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  files             File[]   // 업체에 연결된 파일들
+
+  @@map("companies")
+}
+
+// 파일 정보 모델
+model File {
+  id            String   @id @default(uuid())
+  companyId     String   // 업체 ID
+  fileName      String   // 파일명 (원본 파일명, originalName과 동일)
+  fileType      String   // 파일 종류 ('business_license' | 'credit' | 'call_recording')
+  filePath      String   // 서버에 저장된 파일 경로 (전체 경로)
+  originalName  String?  // 원본 파일명 (사용자가 업로드한 파일명)
+  storedName    String?  // 서버에 저장된 최종 파일명
+  extractedText String?  // 파일에서 추출한 원본 텍스트 (OCR/AI 결과)
+  status        String?  // 상태 ('사용중', '삭제됨' 등)
+  createdAt     DateTime @default(now())
+
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("files")
+}
+
+// 업로드된 파일 모델 (독립적인 파일 업로드용)
+model UploadedFile {
+  id           Int      @id @default(autoincrement())
+  fileType     String
+  originalName String
+  storedName   String
+  path         String
+  uploadedAt   DateTime @default(now())
+
+  @@map("uploaded_files")
+}
