@@ -6,6 +6,11 @@ import { prisma } from './prisma';
 // 모든 업체 조회
 export async function getAllCompanies(): Promise<Company[]> {
   try {
+    // 연결 확인 (필요한 경우)
+    await prisma.$connect().catch(() => {
+      // 연결 실패는 무시 (Prisma가 자동으로 재연결 시도)
+    });
+    
     const companies = await prisma.company.findMany({
       orderBy: {
         updatedAt: 'desc', // 최근 수정일 순으로 정렬
@@ -53,8 +58,26 @@ export async function getAllCompanies(): Promise<Company[]> {
     // 데이터베이스 연결 오류인 경우 더 자세한 메시지 제공
     if (errorMessage.includes("Can't reach database server") || 
         errorMessage.includes("P1001") ||
-        errorMessage.includes("connection")) {
-      throw new Error('데이터베이스 서버에 연결할 수 없습니다. DATABASE_URL 환경 변수를 확인하거나 Supabase 연결 풀 URL을 사용하세요.');
+        errorMessage.includes("connection") ||
+        errorMessage.includes("ECONNREFUSED") ||
+        errorMessage.includes("timeout")) {
+      const dbUrl = process.env.DATABASE_URL || 'not set';
+      const isSupabase = dbUrl.includes('supabase');
+      const isPooler = dbUrl.includes('pooler') || dbUrl.includes('pgbouncer');
+      
+      let helpfulMessage = '데이터베이스 서버에 연결할 수 없습니다.';
+      
+      if (isSupabase && !isPooler) {
+        helpfulMessage += ' Supabase를 사용하는 경우 연결 풀(Connection Pool) URL을 사용해야 합니다. ' +
+          'Supabase 대시보드 > Settings > Database > Connection string > Connection pooling에서 연결 풀 URL을 복사하여 ' +
+          'Vercel 환경 변수 DATABASE_URL에 설정하세요.';
+      } else if (!isSupabase) {
+        helpfulMessage += ' DATABASE_URL 환경 변수를 확인하세요.';
+      } else {
+        helpfulMessage += ' 데이터베이스 서버가 실행 중인지 확인하세요.';
+      }
+      
+      throw new Error(helpfulMessage);
     }
     
     throw error;

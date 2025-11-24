@@ -2,21 +2,35 @@
 // 이 파일은 데이터베이스와 연결하는 도구를 만들어줍니다.
 
 import { PrismaClient } from '@prisma/client';
-import { validateDatabaseConfig } from './db-utils';
-
-// 환경 변수 검증 (프로덕션 환경에서만)
-if (process.env.NODE_ENV === 'production') {
-  try {
-    validateDatabaseConfig();
-  } catch (error) {
-    console.error('❌ Database configuration error:', error);
-  }
-}
+import { getDatabaseUrl } from './db-utils';
 
 // Prisma Client를 전역 변수로 저장 (개발 환경에서만)
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
+
+// 데이터베이스 URL 가져오기 및 환경 변수 설정 (연결 풀 URL로 자동 변환)
+function setupDatabaseUrl(): void {
+  try {
+    const convertedUrl = getDatabaseUrl();
+    // 환경 변수를 런타임에 수정 (Prisma가 읽을 수 있도록)
+    if (convertedUrl && convertedUrl !== process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = convertedUrl;
+      console.log('✅ Database URL converted to connection pool URL');
+    }
+  } catch (error) {
+    // 환경 변수가 없거나 변환 실패 시 경고만 출력
+    const defaultUrl = process.env.DATABASE_URL;
+    if (!defaultUrl) {
+      console.error('❌ DATABASE_URL is not set');
+    } else {
+      console.warn('⚠️ Could not convert database URL, using original:', defaultUrl.substring(0, 30) + '...');
+    }
+  }
+}
+
+// 환경 변수 설정 (Prisma Client 생성 전에 실행)
+setupDatabaseUrl();
 
 // Prisma Client 인스턴스 생성
 // 이미 있으면 재사용하고, 없으면 새로 만듭니다.

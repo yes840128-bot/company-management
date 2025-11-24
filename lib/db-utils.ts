@@ -18,16 +18,38 @@ export function getDatabaseUrl(): string {
   
   // Supabase 직접 연결 URL을 연결 풀 URL로 변환
   if (url.includes('supabase.co') && url.includes('@db.')) {
-    // 직접 연결: postgres://user:pass@db.xxx.supabase.co:5432/db
-    // 연결 풀: postgres://user:pass@pooler.xxx.supabase.co:6543/db?pgbouncer=true
-    const poolerUrl = url
-      .replace('@db.', '@pooler.')
-      .replace(':5432/', ':6543/')
-      .replace(/\?.*$/, '') // 기존 쿼리 파라미터 제거
-      .concat('?pgbouncer=true&connection_limit=1');
-    
-    console.log('🔄 Converted Supabase URL to connection pool URL');
-    return poolerUrl;
+    try {
+      // URL 파싱
+      const urlObj = new URL(url);
+      
+      // 호스트를 pooler로 변경
+      const hostname = urlObj.hostname;
+      const poolerHostname = hostname.replace('db.', 'pooler.');
+      
+      // 포트를 6543으로 변경 (연결 풀 포트)
+      urlObj.hostname = poolerHostname;
+      urlObj.port = '6543';
+      
+      // 쿼리 파라미터 추가
+      urlObj.searchParams.set('pgbouncer', 'true');
+      urlObj.searchParams.set('connection_limit', '1');
+      
+      const poolerUrl = urlObj.toString();
+      console.log('🔄 Converted Supabase direct connection to connection pool URL');
+      return poolerUrl;
+    } catch (error) {
+      // URL 파싱 실패 시 간단한 문자열 치환 사용
+      console.warn('⚠️ URL parsing failed, using string replacement');
+      const poolerUrl = url
+        .replace('@db.', '@pooler.')
+        .replace(':5432/', ':6543/')
+        .replace(/:5432$/, ':6543')
+        .replace(/\?.*$/, '') // 기존 쿼리 파라미터 제거
+        .concat('?pgbouncer=true&connection_limit=1');
+      
+      console.log('🔄 Converted Supabase URL to connection pool URL (fallback)');
+      return poolerUrl;
+    }
   }
   
   return url;
