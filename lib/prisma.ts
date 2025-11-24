@@ -13,9 +13,17 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['query'],
+    log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+    errorFormat: 'minimal',
   });
 
 // 개발 환경이 아니면 전역 변수에 저장하지 않습니다.
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+// 데이터베이스 연결 확인
+if (process.env.NODE_ENV === 'production') {
+  prisma.$connect().catch((error) => {
+    console.error('❌ Database connection error:', error);
+  });
+}
 

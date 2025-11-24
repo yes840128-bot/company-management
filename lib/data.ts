@@ -1,5 +1,5 @@
 // 데이터베이스에서 업체 정보를 가져오고 저장하는 함수들
-// 이제 메모리가 아닌 실제 SQLite 데이터베이스를 사용합니다.
+// PostgreSQL 데이터베이스를 사용합니다.
 import { Company } from '@/types/company';
 import { prisma } from './prisma';
 

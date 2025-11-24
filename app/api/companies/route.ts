@@ -15,10 +15,12 @@ export const runtime = 'nodejs';
 export async function GET() {
   try {
     const companies = await getAllCompanies();
-    return NextResponse.json(companies);
+    return NextResponse.json(companies || []);
   } catch (error) {
+    console.error('❌ GET /api/companies Error:', error);
+    const errorMessage = error instanceof Error ? error.message : '업체 목록을 불러오는데 실패했습니다.';
     return NextResponse.json(
-      { error: '업체 목록을 불러오는데 실패했습니다.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

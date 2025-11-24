@@ -7,6 +7,7 @@ import { Company } from '@/types/company';
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCompanies();
@@ -14,11 +15,19 @@ export default function CompaniesPage() {
 
   const fetchCompanies = async () => {
     try {
+      setError(null);
       const response = await fetch('/api/companies');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류가 발생했습니다.' }));
+        throw new Error(errorData.error || `서버 오류: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setCompanies(data);
+      setCompanies(data || []);
     } catch (error) {
       console.error('업체 목록을 불러오는데 실패했습니다:', error);
+      setError(error instanceof Error ? error.message : '업체 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -60,6 +69,25 @@ export default function CompaniesPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-lg">로딩 중...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-red-800 mb-2">오류가 발생했습니다</h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchCompanies}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              다시 시도
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
