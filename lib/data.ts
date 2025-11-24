@@ -5,11 +5,12 @@ import { prisma } from './prisma';
 
 // 모든 업체 조회
 export async function getAllCompanies(): Promise<Company[]> {
-  const companies = await prisma.company.findMany({
-    orderBy: {
-      updatedAt: 'desc', // 최근 수정일 순으로 정렬
-    },
-  });
+  try {
+    const companies = await prisma.company.findMany({
+      orderBy: {
+        updatedAt: 'desc', // 최근 수정일 순으로 정렬
+      },
+    });
   
   // Prisma의 DateTime을 ISO 문자열로 변환
   return companies.map((company: {
@@ -45,17 +46,31 @@ export async function getAllCompanies(): Promise<Company[]> {
     createdAt: company.createdAt.toISOString(),
     updatedAt: company.updatedAt.toISOString(),
   }));
+  } catch (error) {
+    console.error('❌ getAllCompanies error:', error);
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+    
+    // 데이터베이스 연결 오류인 경우 더 자세한 메시지 제공
+    if (errorMessage.includes("Can't reach database server") || 
+        errorMessage.includes("P1001") ||
+        errorMessage.includes("connection")) {
+      throw new Error('데이터베이스 서버에 연결할 수 없습니다. DATABASE_URL 환경 변수를 확인하거나 Supabase 연결 풀 URL을 사용하세요.');
+    }
+    
+    throw error;
+  }
 }
 
 // ID로 업체 조회
 export async function getCompanyById(id: string): Promise<Company | null> {
-  const company = await prisma.company.findUnique({
-    where: { id },
-  });
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id },
+    });
 
-  if (!company) {
-    return null;
-  }
+    if (!company) {
+      return null;
+    }
 
   // Prisma의 DateTime을 ISO 문자열로 변환
   return {
@@ -75,13 +90,18 @@ export async function getCompanyById(id: string): Promise<Company | null> {
     createdAt: company.createdAt.toISOString(),
     updatedAt: company.updatedAt.toISOString(),
   };
+  } catch (error) {
+    console.error('❌ getCompanyById error:', error);
+    throw error;
+  }
 }
 
 // 업체 추가
 export async function createCompany(
   companyData: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Company> {
-  const newCompany = await prisma.company.create({
+  try {
+    const newCompany = await prisma.company.create({
     data: {
       companyName: companyData.companyName,
       businessNumber: companyData.businessNumber,
@@ -115,6 +135,10 @@ export async function createCompany(
     createdAt: newCompany.createdAt.toISOString(),
     updatedAt: newCompany.updatedAt.toISOString(),
   };
+  } catch (error) {
+    console.error('❌ createCompany error:', error);
+    throw error;
+  }
 }
 
 // 업체 수정

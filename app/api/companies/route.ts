@@ -19,8 +19,22 @@ export async function GET() {
   } catch (error) {
     console.error('❌ GET /api/companies Error:', error);
     const errorMessage = error instanceof Error ? error.message : '업체 목록을 불러오는데 실패했습니다.';
+    
+    // 데이터베이스 연결 오류인 경우 더 자세한 안내 제공
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage.includes("Can't reach database server") || 
+        errorMessage.includes("P1001") ||
+        errorMessage.includes("connection") ||
+        errorMessage.includes("DATABASE_URL")) {
+      userFriendlyMessage = 
+        '데이터베이스 연결 오류가 발생했습니다. ' +
+        'Supabase를 사용하는 경우 연결 풀(Connection Pool) URL을 사용해야 합니다. ' +
+        'Supabase 대시보드 > Settings > Database > Connection string > Connection pooling에서 연결 풀 URL을 복사하여 ' +
+        'Vercel 환경 변수 DATABASE_URL에 설정하세요.';
+    }
+    
     return NextResponse.json(
-      { error: errorMessage },
+      { error: userFriendlyMessage },
       { status: 500 }
     );
   }
