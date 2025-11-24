@@ -74,15 +74,38 @@ export default function CompaniesPage() {
   }
 
   if (error) {
+    const isDatabaseError = error.includes('데이터베이스') || 
+                           error.includes('DATABASE_URL') || 
+                           error.includes('연결') ||
+                           error.includes('Supabase');
+    
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-red-800 mb-2">오류가 발생했습니다</h2>
-            <p className="text-red-600 mb-4">{error}</p>
+          <div className={`${isDatabaseError ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} border rounded-lg p-6`}>
+            <h2 className={`text-lg font-semibold ${isDatabaseError ? 'text-yellow-800' : 'text-red-800'} mb-2`}>
+              {isDatabaseError ? '데이터베이스 설정 필요' : '오류가 발생했습니다'}
+            </h2>
+            <p className={`${isDatabaseError ? 'text-yellow-700' : 'text-red-600'} mb-4 whitespace-pre-line`}>
+              {error}
+            </p>
+            {isDatabaseError && (
+              <div className="bg-white rounded p-4 mb-4 border border-yellow-300">
+                <h3 className="font-semibold text-gray-800 mb-2">설정 방법:</h3>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                  <li>Supabase 대시보드 접속: <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://supabase.com/dashboard</a></li>
+                  <li>프로젝트 선택 → Settings → Database</li>
+                  <li>Connection string → Connection pooling 탭</li>
+                  <li>Transaction mode 선택 후 연결 문자열 복사</li>
+                  <li>Vercel 대시보드 → 프로젝트 → Settings → Environment Variables</li>
+                  <li>DATABASE_URL에 연결 풀 URL 설정 (형식: postgres://...@pooler.xxx.supabase.com:6543/...?pgbouncer=true)</li>
+                  <li>Save 후 자동 재배포 대기</li>
+                </ol>
+              </div>
+            )}
             <button
               onClick={fetchCompanies}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              className={`${isDatabaseError ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} text-white px-4 py-2 rounded-lg transition-colors`}
             >
               다시 시도
             </button>
