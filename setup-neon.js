@@ -1,7 +1,8 @@
 // Neon 무료 데이터베이스 자동 설정 스크립트
 // Neon은 무료이고 Vercel과 완벽하게 호환됩니다
 
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
+const { promisify } = require('util');
 const readline = require('readline');
 
 const rl = readline.createInterface({
@@ -74,11 +75,41 @@ async function setupNeon() {
       } catch (e) {
         // 무시
       }
-      // 새 환경 변수 추가
-      execSync(`echo "${dbUrl}" | vercel env add DATABASE_URL ${env}`, { stdio: 'inherit' });
-      console.log(`✅ ${env} 환경 변수 설정 완료\n`);
+      // 새 환경 변수 추가 (Windows 호환)
+      if (process.platform === 'win32') {
+        // Windows에서는 spawn 사용
+        await new Promise((resolve, reject) => {
+          const vercelProcess = spawn('vercel', ['env', 'add', 'DATABASE_URL', env], {
+            stdio: ['pipe', 'inherit', 'inherit'],
+            shell: true
+          });
+          
+          vercelProcess.stdin.write(dbUrl + '\n');
+          vercelProcess.stdin.end();
+          
+          vercelProcess.on('close', (code) => {
+            if (code === 0) {
+              console.log(`✅ ${env} 환경 변수 설정 완료\n`);
+              resolve();
+            } else {
+              reject(new Error(`Exit code: ${code}`));
+            }
+          });
+          
+          vercelProcess.on('error', reject);
+        });
+      } else {
+        // Unix/Linux/Mac
+        execSync(`echo "${dbUrl}" | vercel env add DATABASE_URL ${env}`, { stdio: 'inherit' });
+        console.log(`✅ ${env} 환경 변수 설정 완료\n`);
+      }
     } catch (error) {
       console.error(`❌ ${env} 환경 변수 설정 실패:`, error.message);
+      console.log(`\n수동 설정 방법:`);
+      console.log(`1. https://vercel.com/dashboard 접속`);
+      console.log(`2. 프로젝트 선택 > Settings > Environment Variables`);
+      console.log(`3. Name: DATABASE_URL, Value: ${dbUrl.substring(0, 50)}...`);
+      console.log(`4. Environment: ${env} 선택 후 Save\n`);
     }
   }
   
