@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Neon, Supabase, Vercel Postgres 등 모든 PostgreSQL 호환
 }
 
 // 업체 정보 모델

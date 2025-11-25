@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "setup:env": "node setup-vercel-env.js"
+    "setup:env": "node setup-vercel-env.js",
+    "setup:neon": "node setup-neon.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
