@@ -66,3 +66,4 @@ postgres://user:pass@pooler.xxx.supabase.co:6543/dbname?pgbouncer=true&connectio
 3. Supabase 프로젝트가 활성화되어 있는지 확인
 4. Vercel 로그 확인: Vercel 대시보드 > 프로젝트 > Functions 탭
 
+

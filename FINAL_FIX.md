@@ -98,3 +98,4 @@ postgres://user:pass@pooler.xxx.supabase.com:6543/dbname?pgbouncer=true
 - `SUPABASE_SETUP.md`: Supabase 설정 상세 가이드
 - `test-connection.js`: 로컬 연결 테스트 스크립트
 
+

@@ -20,7 +20,9 @@ export async function GET() {
       console.error('❌ DATABASE_URL is not set in environment variables');
       return NextResponse.json(
         { 
-          error: '데이터베이스 연결 설정이 없습니다. Vercel 대시보드 > Settings > Environment Variables에서 DATABASE_URL을 설정하세요.' 
+          error: '데이터베이스 연결 설정이 없습니다. ' +
+                 '프로젝트 루트에서 다음 명령어를 실행하세요: node setup-vercel-env.js [DATABASE_URL] ' +
+                 '또는 Vercel 대시보드 > Settings > Environment Variables에서 DATABASE_URL을 설정하세요.' 
         },
         { status: 500 }
       );

@@ -49,3 +49,4 @@ npx prisma migrate deploy
 - GitHub 저장소: https://github.com/yes840128-bot/company-management
 - Vercel 대시보드: https://vercel.com/dashboard
 
+
