@@ -55,6 +55,7 @@ export async function GET() {
       if (!dbUrl) {
         userFriendlyMessage = 
           '데이터베이스 연결 설정이 없습니다. ' +
+          '환경 변수를 설정하려면 /setup 페이지를 참고하거나 ' +
           'Vercel 대시보드 > Settings > Environment Variables에서 DATABASE_URL을 설정하세요.';
       } else if (isSupabase && !isPooler) {
         userFriendlyMessage = 
