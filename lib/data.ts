@@ -5,17 +5,22 @@ import { prisma } from './prisma';
 
 // 모든 업체 조회
 export async function getAllCompanies(): Promise<Company[]> {
-  // 환경 변수 확인
-  if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
-    throw new Error(
-      'DATABASE_URL 환경 변수가 설정되지 않았습니다. ' +
-      'Vercel 대시보드 > Settings > Environment Variables에서 DATABASE_URL을 설정하세요. ' +
-      'Supabase를 사용하는 경우 연결 풀 URL을 사용하세요: ' +
-      'postgres://...@pooler.xxx.supabase.com:6543/...?pgbouncer=true'
-    );
-  }
-
   try {
+    // 환경 변수 확인 및 로깅
+    const dbUrl = process.env.DATABASE_URL || 'NOT SET';
+    if (dbUrl === 'NOT SET') {
+      console.error('❌ DATABASE_URL is not set');
+      throw new Error('DATABASE_URL environment variable is not configured. Please set it in Vercel dashboard.');
+    }
+    
+    // 연결 확인
+    try {
+      await prisma.$connect();
+    } catch (connectError) {
+      console.error('❌ Prisma connection error:', connectError);
+      // 연결 실패해도 쿼리 시도 (Prisma가 자동 재연결 시도할 수 있음)
+    }
+    
     const companies = await prisma.company.findMany({
       orderBy: {
         updatedAt: 'desc', // 최근 수정일 순으로 정렬

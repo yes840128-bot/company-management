@@ -9,37 +9,57 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// 데이터베이스 URL 가져오기 및 환경 변수 설정 (연결 풀 URL로 자동 변환)
-function setupDatabaseUrl(): void {
+// 데이터베이스 URL 가져오기 (연결 풀 URL로 자동 변환)
+function getPrismaDatabaseUrl(): string {
   try {
+    // 환경 변수 자동 변환 시도
     const convertedUrl = getDatabaseUrl();
-    // 환경 변수를 런타임에 수정 (Prisma가 읽을 수 있도록)
-    if (convertedUrl && convertedUrl !== process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = convertedUrl;
-      console.log('✅ Database URL converted to connection pool URL');
-    }
+    return convertedUrl;
   } catch (error) {
-    // 환경 변수가 없거나 변환 실패 시 경고만 출력
-    const defaultUrl = process.env.DATABASE_URL;
-    if (!defaultUrl) {
-      console.error('❌ DATABASE_URL is not set');
-    } else {
-      console.warn('⚠️ Could not convert database URL, using original:', defaultUrl.substring(0, 30) + '...');
+    // 변환 실패 시 원본 URL 사용
+    const originalUrl = process.env.DATABASE_URL;
+    if (!originalUrl) {
+      console.error('❌ DATABASE_URL environment variable is not set');
+      throw new Error('DATABASE_URL environment variable is not set. Please configure it in Vercel dashboard.');
     }
+    console.warn('⚠️ Could not convert database URL, using original');
+    return originalUrl;
   }
 }
 
-// 환경 변수 설정 (Prisma Client 생성 전에 실행)
-setupDatabaseUrl();
-
 // Prisma Client 인스턴스 생성
 // 이미 있으면 재사용하고, 없으면 새로 만듭니다.
+// datasources를 사용하여 동적으로 URL 설정
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    errorFormat: 'minimal',
-  });
+  (() => {
+    try {
+      const databaseUrl = getPrismaDatabaseUrl();
+      
+      // 환경 변수도 업데이트 (다른 곳에서 사용할 수 있도록)
+      if (databaseUrl !== process.env.DATABASE_URL) {
+        process.env.DATABASE_URL = databaseUrl;
+        console.log('✅ Database URL configured for Prisma Client');
+      }
+      
+      return new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        errorFormat: 'minimal',
+        datasources: {
+          db: {
+            url: databaseUrl,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('❌ Failed to create Prisma Client:', error);
+      // 에러가 발생해도 기본 Prisma Client 생성 시도
+      return new PrismaClient({
+        log: ['error'],
+        errorFormat: 'minimal',
+      });
+    }
+  })();
 
 // 개발 환경이 아니면 전역 변수에 저장하지 않습니다.
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

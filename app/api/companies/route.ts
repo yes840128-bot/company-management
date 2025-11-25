@@ -16,17 +16,20 @@ export async function GET() {
   try {
     // 환경 변수 확인
     const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl || dbUrl.trim() === '') {
+    if (!dbUrl) {
+      console.error('❌ DATABASE_URL is not set in environment variables');
       return NextResponse.json(
         { 
-          error: '데이터베이스 연결 설정이 필요합니다. ' +
-                 'Vercel 대시보드 > Settings > Environment Variables에서 DATABASE_URL을 설정하세요. ' +
-                 'Supabase 연결 풀 URL 형식: postgres://...@pooler.xxx.supabase.com:6543/...?pgbouncer=true'
+          error: '데이터베이스 연결 설정이 없습니다. Vercel 대시보드 > Settings > Environment Variables에서 DATABASE_URL을 설정하세요.' 
         },
         { status: 500 }
       );
     }
-
+    
+    // 데이터베이스 URL 로깅 (보안을 위해 일부만)
+    const urlPreview = dbUrl.substring(0, 30) + '...';
+    console.log('🔗 Using database URL:', urlPreview);
+    
     const companies = await getAllCompanies();
     return NextResponse.json(companies || []);
   } catch (error) {
@@ -36,30 +39,30 @@ export async function GET() {
     // 데이터베이스 연결 오류인 경우 더 자세한 안내 제공
     let userFriendlyMessage = errorMessage;
     
-    if (errorMessage.includes("DATABASE_URL") || errorMessage.includes("환경 변수")) {
-      // 환경 변수 관련 오류는 이미 처리됨
-      userFriendlyMessage = errorMessage;
-    } else if (errorMessage.includes("Can't reach database server") || 
+    if (errorMessage.includes("Can't reach database server") || 
         errorMessage.includes("P1001") ||
         errorMessage.includes("connection") ||
         errorMessage.includes("ECONNREFUSED") ||
-        errorMessage.includes("timeout")) {
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("DATABASE_URL")) {
+      
       const dbUrl = process.env.DATABASE_URL || '';
       const isSupabase = dbUrl.includes('supabase');
       const isPooler = dbUrl.includes('pooler') || dbUrl.includes('pgbouncer');
       
-      if (isSupabase && !isPooler) {
+      if (!dbUrl) {
         userFriendlyMessage = 
-          '데이터베이스 연결 오류가 발생했습니다. ' +
-          'Supabase를 사용하는 경우 연결 풀(Connection Pool) URL을 사용해야 합니다. ' +
-          'Supabase 대시보드 > Settings > Database > Connection string > Connection pooling (Transaction mode)에서 연결 풀 URL을 복사하여 ' +
-          'Vercel 환경 변수 DATABASE_URL에 설정하세요. ' +
-          '형식: postgres://...@pooler.xxx.supabase.com:6543/...?pgbouncer=true';
+          '데이터베이스 연결 설정이 없습니다. ' +
+          'Vercel 대시보드 > Settings > Environment Variables에서 DATABASE_URL을 설정하세요.';
+      } else if (isSupabase && !isPooler) {
+        userFriendlyMessage = 
+          'Supabase 직접 연결 URL을 사용 중입니다. 서버리스 환경에서는 연결 풀 URL을 사용해야 합니다. ' +
+          'Supabase 대시보드 > Settings > Database > Connection string > Connection pooling에서 ' +
+          '연결 풀 URL을 복사하여 Vercel 환경 변수 DATABASE_URL에 설정하세요.';
       } else {
         userFriendlyMessage = 
           '데이터베이스 서버에 연결할 수 없습니다. ' +
-          'DATABASE_URL 환경 변수가 올바르게 설정되었는지 확인하세요. ' +
-          '데이터베이스 서버가 실행 중인지 확인하세요.';
+          '데이터베이스 서버가 실행 중인지, 환경 변수가 올바르게 설정되었는지 확인하세요.';
       }
     }
     
